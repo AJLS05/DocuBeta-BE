@@ -121,7 +121,10 @@ CREATE TABLE Factura (
     FOREIGN KEY (idUsuario) REFERENCES Usuario(idUsuario),
     FOREIGN KEY (idEstado) REFERENCES Estado(idEstado)
 );
-
+-- Agregar la columna idSolicitud a la tabla Factura
+ALTER TABLE Factura ADD idSolicitud INT;
+-- Agregar la clave foranea a la tabla Factura
+ALTER TABLE Factura ADD FOREIGN KEY (idSolicitud) REFERENCES Solicitud(idSolicitud);
 -- Tabla: Documento
 CREATE TABLE Documento (
     idDocumento INT PRIMARY KEY AUTO_INCREMENT,
@@ -357,17 +360,27 @@ CREATE PROCEDURE ObtenerDocumentosPorDNI(
 	IN p_dni varchar(20)
 )
 BEGIN
-    SELECT d.*
+    SELECT d.idDocumento, d.fechaSoli, d.fechaEntre, d.idSolicitud,
+           p.nom1 AS Nombre1, p.nom2 AS Nombre2, p.ape1 AS Apellido1, p.ape2 AS Apellido2,
+           td.Descripcion AS TipoDocumento, e.Descripcion AS Estado
     FROM Documento d
     JOIN Persona p ON d.idPersona = p.idPersona
+    JOIN TipoDocumento td ON d.idTipoDocumento = td.idTipoDocumento
+    JOIN Estado e ON d.idEstado = e.idEstado
     WHERE p.dni = p_dni;
 END //
-
+DROP PROCEDURE ObtenerDocumentosPorDNI;
 -- Procedimiento para obtener los documentos con estado pendiente
 CREATE PROCEDURE ObtenerDocumentosPendientes()
 BEGIN
-    SELECT * FROM Documento
-    WHERE idEstado = (SELECT idEstado FROM Estado WHERE Descripcion = 'Pendiente');
+    SELECT d.idDocumento, d.fechaSoli, d.fechaEntre, d.idSolicitud,
+           p.nom1 AS Nombre1, p.nom2 AS Nombre2, p.ape1 AS Apellido1, p.ape2 AS Apellido2,
+           td.Descripcion AS TipoDocumento, e.Descripcion AS Estado
+    FROM Documento d
+    JOIN Persona p ON d.idPersona = p.idPersona
+    JOIN TipoDocumento td ON d.idTipoDocumento = td.idTipoDocumento
+    JOIN Estado e ON d.idEstado = e.idEstado
+    WHERE d.idEstado = (SELECT idEstado FROM Estado WHERE Descripcion = 'Pendiente');
 END //
 
 -- Procedimiento para obtener los documentos apostillados
@@ -377,13 +390,27 @@ BEGIN
     JOIN Apostilla a ON d.idDocumento = a.idDocumento;
 END //
 
+-- Procedimiento para obtener los documentos apostillados
+CREATE PROCEDURE ObtenerTipoDocumentos()
+BEGIN
+    SELECT * FROM TipoDocumento;
+END //
+
 -- Procedimiento para obtener los documentos enviados
 CREATE PROCEDURE ObtenerDocumentosEnviados()
 BEGIN
-    SELECT * FROM Documento
-    WHERE idEstado = (SELECT idEstado FROM Estado WHERE Descripcion = 'Enviado');   
+    SELECT d.idDocumento, d.fechaSoli, d.fechaEntre, d.idSolicitud,
+           p.nom1 AS Nombre1, p.nom2 AS Nombre2, p.ape1 AS Apellido1, p.ape2 AS Apellido2,
+           td.Descripcion AS TipoDocumento, e.Descripcion AS Estado
+    FROM Documento d
+    JOIN Persona p ON d.idPersona = p.idPersona
+    JOIN TipoDocumento td ON d.idTipoDocumento = td.idTipoDocumento
+    JOIN Estado e ON d.idEstado = e.idEstado
+    WHERE d.idEstado = (SELECT idEstado FROM Estado WHERE Descripcion = 'Enviado');
 END //
-
+//
+-- DROP PROCEDURE ObtenerDocumentosEnviados;
+//
 DELIMITER //
 
 -- funciones para obtener el costo total de una solicitud
@@ -464,6 +491,17 @@ BEGIN
     FROM Usuario
     WHERE nomUsuario = p_nomUsuario AND contraseña = p_contraseña;
     RETURN v_idUsuario;
+END //
+-- Función para obtener el rol de un usuario por su nombre de usuario
+CREATE FUNCTION ObtenerRolPorNomUsuario(
+    p_nomUsuario VARCHAR(20)
+) RETURNS VARCHAR(20)
+BEGIN
+    DECLARE v_rol VARCHAR(20);
+    SELECT idRol INTO v_rol
+    FROM Usuario 
+    WHERE nomUsuario = p_nomUsuario;
+    RETURN v_rol;
 END //
 -----
 -- Inserts de datos base

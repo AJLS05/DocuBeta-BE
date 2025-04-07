@@ -39,15 +39,12 @@ export const handler = async (event) => {
     WHERE nomUsuario = p_nomUsuario AND contraseña = p_contraseña;
     RETURN idUsuario; */
     if (path === '/GetContra' && httpMethod === 'GET') {
-      const body = JSON.parse(event.body);
-      const {
-        p_nomUsuario,
-        p_contrasena
-      } = body;
+      const { p_nomUsuario, p_contrasena } = event.queryStringParameters;
       const [rows] = await connection.query(
-        'SELECT ConfirmarContrasena(?, ?)',
+        'SELECT ConfirmarContrasena(?, ?) AS resultado',
         [p_nomUsuario, p_contrasena]
       );
+      const resultado = rows[0]?.resultado;
       return {
         statusCode: 200,
         headers: {
@@ -55,9 +52,12 @@ export const handler = async (event) => {
           'Access-Control-Allow-Headers': 'Content-Type',
           'Access-Control-Allow-Methods': 'GET, POST',
         },
-        body: JSON.stringify({ message: 'parametros coinciden correctamente', resultado: rows })
+        body: JSON.stringify({
+          message: 'Parámetros coinciden correctamente',
+          resultado: resultado
+        }),
       };
-    }
+    }    
     /*DECLARE total DOUBLE;
     SELECT SUM(Costo) INTO total
     FROM Documento
@@ -88,10 +88,9 @@ export const handler = async (event) => {
     WHERE dni = p_dni;
     RETURN existe > 0; */
     if (path === '/GetDNI' && httpMethod === 'GET') {
-      const body = JSON.parse(event.body);
       const {
         p_dni
-      } = body;
+      } = event.queryStringParameters;
       const [rows] = await connection.query(
         'SELECT VerificarDniExistente(?)',
         [p_dni]
@@ -103,7 +102,7 @@ export const handler = async (event) => {
           'Access-Control-Allow-Headers': 'Content-Type',
           'Access-Control-Allow-Methods': 'GET, POST',
         },
-        body: JSON.stringify({ message: 'DNI obtenido correctamente', resultado: rows })
+        body: JSON.stringify({ message: 'DNI obtenido correctamente', resultado: rows })  
       };
     }
     /*SELECT * FROM Documento
@@ -127,10 +126,7 @@ export const handler = async (event) => {
     JOIN Persona p ON d.idPersona = p.idPersona
     WHERE p.dni = p_dni; */
     if (path === '/GetDocumentos' && httpMethod === 'GET') {
-      const body = JSON.parse(event.body);
-      const {
-        p_dni
-      } = body;
+      const { p_dni } = event.queryStringParameters;
       const [rows] = await connection.query(
         'CALL ObtenerDocumentosPorDNI(?)',
         [p_dni]
@@ -238,6 +234,42 @@ export const handler = async (event) => {
       )
       };
     }
+
+    if (path === '/GetRolPorUsuario' && httpMethod === 'GET') {
+      const { p_nomUsuario } = event.queryStringParameters;
+      const [rows] = await connection.query(
+        'SELECT ObtenerRolPorNomUsuario(?)',
+        [p_nomUsuario]
+      );
+      const resultado = rows[0]?.resultado;
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST',
+        },
+        body: JSON.stringify({
+          message: 'El rol del usuario es',
+          resultado: resultado
+        }),
+      };
+    }
+    if (path === '/GetTipoDocumentos' && httpMethod === 'GET') {
+      const [rows] = await connection.query('Call ObtenerTipoDocumentos()');
+      return {
+        statusCode: 200,
+        headers: {
+          //Headers porque sino truena
+          'Access-Control-Allow-Origin': '*', 
+          'Access-Control-Allow-Headers': 'Content-Type', 
+          'Access-Control-Allow-Methods': 'GET, POST', 
+        },
+        body: JSON.stringify({ message: 'Consulta de Tipos de Documentos realizada', rows }
+      )
+      };
+    }
+    
     /*DECLARE existe BOOLEAN;
     SELECT COUNT(*) INTO existe
     FROM Usuario
@@ -349,11 +381,12 @@ export const handler = async (event) => {
         idEstado,
         fechaFactura,
         total,
-        isv
+        isv,
+        idSolicitud
       } = body;
       const [rows] = await connection.query(
-        'CALL InsertarFactura(?, ?, ?, ?, ?, ?)',
-        [idMetodoPago, idUsuario, idEstado, fechaFactura, total, isv]
+        'CALL InsertarFactura(?, ?, ?, ?, ?, ?, ?)',
+        [idMetodoPago, idUsuario, idEstado, fechaFactura, total, isv, idSolicitud]
       );
       return {
         statusCode: 200,
